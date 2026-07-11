@@ -104,6 +104,10 @@ def main() -> None:
             continue
         library_item = library[str(item["5"])]
         extra = library_item["extra"]
+        # Flexible hoses need their original control points to render correctly.
+        # Straight placeholders create long rods across the hull, so omit them.
+        if extra.get("type") == "flexible":
+            continue
         geometry_name = extra.get("configuration") or Path(extra["mesh"]).stem
         source_path = f"geometries/{extra['version']}/{geometry_name}.json"
         if source_path not in available_files:
@@ -135,6 +139,12 @@ def main() -> None:
         # The Mecabricks scene displays minifigures and accessories in a row
         # beside the ship. They are not part of the Falcon's final silhouette.
         if position[0] > 300:
+            continue
+        # Remove two detached display assemblies: a small accessory behind the
+        # ship and the optional rectangular radar dish beside the mandibles.
+        if position[0] > 290 and position[1] < 20 and position[2] < -300:
+            continue
+        if position[0] > 230 and position[1] < 35 and position[2] > 280:
             continue
         all_positions.append(position)
         grouped[(geometry_id, colors)].append(
