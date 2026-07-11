@@ -108,14 +108,16 @@ Pixel ratio is capped at 1.65 to avoid spending excessive GPU time on very dense
 
 Drag anywhere on the canvas to orbit the completed or assembling model, and use the wheel to zoom. The sequence can be paused, resumed, or restarted without reloading the assets.
 
-Sound is opt-in and uses the Web Audio API. A construction track follows the active build phase, fades out when assembly stops, and gives way to a separate completion cue when all 7,361 parts are locked. Audio is loaded only after user interaction to respect browser autoplay policies.
+The sound layer is opt-in and uses the Web Audio API. It is designed to synchronize a construction track with the active build phase, fade it out when assembly stops, and play a separate cue when all 7,361 parts are locked. Audio is loaded only after user interaction to respect browser autoplay policies.
+
+The runtime expects `assets/audio/lego-build-process.mp3` and `assets/audio/lego-build-complete.mp3`; those source files are not included in the repository. Missing audio is handled as a non-fatal condition, so the visual experience continues normally and reports the unavailable files only in the browser console.
 
 ## Project layout
 
 ```text
 .
 ├── assets/
-│   ├── audio/                 Build and completion sound
+│   ├── audio/                 Optional runtime sound files (not included)
 │   ├── falcon/
 │   │   ├── scene.json         Compact scene and instance manifest
 │   │   └── geometries.zip     Deduplicated geometry archive
