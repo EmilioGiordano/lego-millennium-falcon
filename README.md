@@ -116,6 +116,10 @@ The runtime expects `assets/audio/lego-build-process.mp3` and `assets/audio/lego
 
 ```text
 .
+├── app/
+│   ├── styles/main.css        Responsive presentation and instrumentation
+│   ├── index.html             Semantic interface structure
+│   └── main.js                Small application composition root
 ├── assets/
 │   ├── audio/                 Optional runtime sound files (not included)
 │   ├── falcon/
@@ -131,10 +135,7 @@ The runtime expects `assets/audio/lego-build-process.mp3` and `assets/audio/lego
 │   ├── model/                 Geometry parsing and instanced-model loading
 │   ├── rendering/             Three.js stage, lighting, and environment
 │   └── ui/                    DOM state and telemetry updates
-├── tools/prepare-model.py     Mecabricks-to-runtime conversion pipeline
-├── index.html                 Semantic interface structure
-├── styles.css                 Responsive presentation and instrumentation
-└── script.js                  Small application composition root
+└── tools/prepare-model.py     Mecabricks-to-runtime conversion pipeline
 ```
 
 ## Adding another LEGO set
@@ -146,7 +147,7 @@ To introduce another set:
 1. Process its Mecabricks export into a scene manifest and geometry archive.
 2. Place those runtime assets under a new `assets/<set-id>/` directory.
 3. Add a definition to `legoSets` in `src/config/sets.js`.
-4. Open the experience with `?set=<set-id>`.
+4. Open the experience with `/app/?set=<set-id>`.
 
 Set-specific tuning remains data rather than branching application logic. A differently sized model can define its own camera distances and rotation; a different build can adjust bag timing, vortex radius, assembly duration, completion label, and emissive materials without changing the shared modules.
 
@@ -158,7 +159,7 @@ ES modules, `fetch`, and the ZIP archive require the project to be served over H
 python -m http.server 4173
 ```
 
-Then open `http://localhost:4173`.
+Then open `http://localhost:4173/app/`.
 
 A current WebGL-capable browser is recommended. There is no dependency installation or build step.
 

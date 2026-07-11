@@ -1,10 +1,10 @@
-import { createAssemblyController } from "./src/animation/assembly-controller.js";
-import { createSoundController } from "./src/audio/sound-controller.js";
-import { resolveLegoSet } from "./src/config/sets.js";
-import { createOrbitController } from "./src/controls/orbit-controller.js";
-import { loadLegoSet } from "./src/model/load-lego-set.js";
-import { createStage } from "./src/rendering/stage.js";
-import { createInterface } from "./src/ui/interface.js";
+import { createAssemblyController } from "../src/animation/assembly-controller.js";
+import { createSoundController } from "../src/audio/sound-controller.js";
+import { resolveLegoSet } from "../src/config/sets.js";
+import { createOrbitController } from "../src/controls/orbit-controller.js";
+import { loadLegoSet } from "../src/model/load-lego-set.js";
+import { createStage } from "../src/rendering/stage.js";
+import { createInterface } from "../src/ui/interface.js";
 
 const canvas = document.querySelector("#scene");
 const set = resolveLegoSet();

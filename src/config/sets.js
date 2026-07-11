@@ -44,12 +44,21 @@ export const legoSets = {
       footerRight: "Unofficial fan experiment",
     },
     assets: {
-      manifest: "./assets/falcon/scene.json",
-      geometries: "./assets/falcon/geometries.zip",
+      manifest: new URL("../../assets/falcon/scene.json", import.meta.url).href,
+      geometries: new URL(
+        "../../assets/falcon/geometries.zip",
+        import.meta.url,
+      ).href,
     },
     audio: {
-      build: "./assets/audio/lego-build-process.mp3?v=2",
-      complete: "./assets/audio/lego-build-complete.mp3",
+      build: new URL(
+        "../../assets/audio/lego-build-process.mp3?v=2",
+        import.meta.url,
+      ).href,
+      complete: new URL(
+        "../../assets/audio/lego-build-complete.mp3",
+        import.meta.url,
+      ).href,
     },
     material: {
       emissiveReferences: [42],
