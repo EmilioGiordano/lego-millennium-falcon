@@ -96,6 +96,7 @@ def main() -> None:
 
     geometry_paths: dict[str, int] = {}
     geometry_sources: list[str] = []
+    flexible_descriptors: dict[str, dict] = {}
     grouped: dict[tuple[int, tuple[int, ...]], list[dict]] = defaultdict(list)
     all_positions: list[tuple[float, float, float]] = []
 
@@ -104,30 +105,31 @@ def main() -> None:
             continue
         library_item = library[str(item["5"])]
         extra = library_item["extra"]
-        # Flexible hoses need their original control points to render correctly.
-        # Straight placeholders create long rods across the hull, so omit them.
         if extra.get("type") == "flexible":
-            continue
-        geometry_name = extra.get("configuration") or Path(extra["mesh"]).stem
-        source_path = f"geometries/{extra['version']}/{geometry_name}.json"
-        if source_path not in available_files:
-            fallback_name = re.sub(r"v\d+$", "", geometry_name)
-            fallback_path = f"geometries/{extra['version']}/{fallback_name}.json"
-            if fallback_path in available_files:
-                source_path = fallback_path
-            elif extra.get("type") == "flexible":
-                length_match = re.search(r"(\d+)\s*mm", library_item["name"], re.IGNORECASE)
-                module_match = re.search(r"(\d+)M", library_item["name"], re.IGNORECASE)
-                length = (
-                    float(length_match.group(1))
-                    if length_match
-                    else float(module_match.group(1)) * 8
-                    if module_match
-                    else 80.0
-                )
-                source_path = f"__flex__/{length:g}"
-            else:
-                raise FileNotFoundError(f"Missing geometry: {source_path}")
+            # Only the rear engine hoses and protective lattices are part of
+            # the visible hull. Other flexible accessories render incorrectly
+            # without their complete Mecabricks deformation data.
+            if item["5"] not in (2007, 15085):
+                continue
+            points = item.get("10", {}).get("11", [[]])[0][:4]
+            if len(points) != 4 or any(len(point) != 3 for point in points):
+                raise ValueError(f"Missing flexible control points for object {index}")
+            descriptor = {
+                "kind": "lattice" if item["5"] == 15085 else "hose",
+                "points": [[round(float(value), 4) for value in point] for point in points],
+            }
+            source_path = f"__flex__/{json.dumps(descriptor, separators=(',', ':'))}"
+            flexible_descriptors[source_path] = descriptor
+        else:
+            geometry_name = extra.get("configuration") or Path(extra["mesh"]).stem
+            source_path = f"geometries/{extra['version']}/{geometry_name}.json"
+            if source_path not in available_files:
+                fallback_name = re.sub(r"v\d+$", "", geometry_name)
+                fallback_path = f"geometries/{extra['version']}/{fallback_name}.json"
+                if fallback_path in available_files:
+                    source_path = fallback_path
+                else:
+                    raise FileNotFoundError(f"Missing geometry: {source_path}")
         if source_path not in geometry_paths:
             geometry_paths[source_path] = len(geometry_sources)
             geometry_sources.append(source_path)
@@ -205,7 +207,7 @@ def main() -> None:
         },
         "materials": color_payload,
         "geometries": [
-            {"flex": float(source_path.split("/")[1])}
+            {"flex": flexible_descriptors[source_path]}
             if source_path.startswith("__flex__/")
             else {"path": f"g/{index}.json"}
             for index, source_path in enumerate(geometry_sources)
