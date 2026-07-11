@@ -21,13 +21,26 @@ let startTime = performance.now();
 let pausedAt = 0;
 let isPaused = false;
 let ready = false;
-let pointerX = 0;
-let pointerY = 0;
-let smoothX = 0;
-let smoothY = 0;
+let orbitYaw = 0;
+let orbitPitch = 0.73;
+let targetOrbitYaw = 0;
+let targetOrbitPitch = 0.73;
+let orbitZoom = 1;
+let targetOrbitZoom = 1;
+let isOrbiting = false;
+let pointerStartX = 0;
+let pointerStartY = 0;
 let audioContext;
 let masterGain;
+let buildProcessBuffer;
+let buildProcessLoadPromise;
+let buildLoopSource;
+let buildLoopGain;
+let completionBuffer;
+let completionLoadPromise;
 let soundOn = false;
+let completionSoundPlayed = false;
+let previousAssembly = 0;
 let sceneData;
 let modelCenter;
 let totalParts = 0;
@@ -443,16 +456,17 @@ function updateInstances(time, assembly) {
 
 function updateInterface(sequence, locked) {
   const shownLocked = Math.max(0, locked);
+  const actualProgress = totalParts > 0 ? shownLocked / totalParts : 0;
   if (shownLocked !== lastLocked) {
     ui.count.textContent = String(shownLocked).padStart(4, "0");
     lastLocked = shownLocked;
   }
-  ui.progress.style.width = `${sequence.assembly * 100}%`;
-  ui.velocity.textContent = ((1 - sequence.assembly) * 18.4).toFixed(1);
+  ui.progress.style.width = `${actualProgress * 100}%`;
+  ui.velocity.textContent = ((1 - actualProgress) * 18.4).toFixed(1);
 
   let phase = "Vortex forming";
   if (sequence.assembly > 0.01) phase = "Bags locking in sequence";
-  if (sequence.assembly > 0.985) phase = "YT-1300 complete";
+  if (shownLocked >= totalParts && totalParts > 0) phase = "YT-1300 complete";
   if (sequence.cycle > 0.95) phase = "Sequence reset";
   ui.phase.textContent = phase;
 }
@@ -460,24 +474,27 @@ function updateInterface(sequence, locked) {
 function render(now) {
   const time = isPaused ? pausedAt : now;
   const sequence = sequenceAt(time);
-  smoothX += (pointerX - smoothX) * 0.035;
-  smoothY += (pointerY - smoothY) * 0.035;
+  orbitYaw += (targetOrbitYaw - orbitYaw) * 0.09;
+  orbitPitch += (targetOrbitPitch - orbitPitch) * 0.09;
+  orbitZoom += (targetOrbitZoom - orbitZoom) * 0.09;
 
   let locked = 0;
   if (ready) {
     locked = updateInstances(time, sequence.assembly);
     updateInterface(sequence, locked);
+    updateBuildAudio(now, sequence, locked);
   }
 
   const mobile = innerWidth < 760;
-  const cameraDistance = mobile ? 3000 : 2350;
+  const cameraDistance = (mobile ? 3000 : 2050) * orbitZoom;
+  const horizontalDistance = Math.cos(orbitPitch) * cameraDistance;
   camera.position.set(
-    smoothX * 155,
-    cameraDistance * 0.67 - smoothY * 80,
-    cameraDistance * 0.75,
+    Math.sin(orbitYaw) * horizontalDistance,
+    Math.sin(orbitPitch) * cameraDistance,
+    Math.cos(orbitYaw) * horizontalDistance,
   );
-  camera.lookAt(0, mobile ? -40 : -180, smoothY * 30);
-  shipRoot.rotation.y = (mobile ? -0.5 : -0.12) + smoothX * 0.035;
+  camera.lookAt(0, mobile ? -40 : -180, 0);
+  shipRoot.rotation.y = mobile ? -0.5 : -0.12;
   stars.rotation.y = time * 0.000006;
   halo.rotation.z = -time * 0.00004;
 
@@ -489,6 +506,9 @@ function rebuild() {
   if (!ready) return;
   startTime = performance.now() - DURATION * 0.03;
   isPaused = false;
+  completionSoundPlayed = false;
+  previousAssembly = 0;
+  stopBuildLoop();
   instanceBatches.forEach((batch) =>
     batch.records.forEach((record) => {
       record.lastLock = -1;
@@ -518,25 +538,110 @@ function setupAudio() {
   masterGain.gain.value = 0;
   masterGain.connect(audioContext.destination);
 
-  const hum = audioContext.createOscillator();
-  const filter = audioContext.createBiquadFilter();
-  const humGain = audioContext.createGain();
-  hum.type = "sawtooth";
-  hum.frequency.value = 46;
-  filter.type = "lowpass";
-  filter.frequency.value = 165;
-  humGain.gain.value = 0.035;
-  hum.connect(filter).connect(humGain).connect(masterGain);
-  hum.start();
+  const loadAudio = (path, label) =>
+    fetch(path)
+    .then((response) => {
+      if (!response.ok) throw new Error(`${label} sound could not be loaded.`);
+      return response.arrayBuffer();
+    })
+    .then((buffer) => audioContext.decodeAudioData(buffer))
+    .catch((error) => console.warn(error));
+
+  buildProcessLoadPromise = loadAudio(
+    "./assets/audio/lego-build-process.mp3?v=2",
+    "Build process",
+  ).then((buffer) => {
+    buildProcessBuffer = buffer;
+  });
+  completionLoadPromise = loadAudio(
+    "./assets/audio/lego-build-complete.mp3",
+    "Completion",
+  ).then((buffer) => {
+    completionBuffer = buffer;
+  });
+}
+
+function startBuildLoop() {
+  if (!soundOn || !audioContext || !buildProcessBuffer || buildLoopSource) return;
+  const time = audioContext.currentTime;
+  const source = audioContext.createBufferSource();
+  const gain = audioContext.createGain();
+  source.buffer = buildProcessBuffer;
+  source.loop = false;
+  gain.gain.setValueAtTime(0.0001, time);
+  gain.gain.exponentialRampToValueAtTime(0.78, time + 0.06);
+  source.connect(gain).connect(masterGain);
+  source.start(time);
+  source.onended = () => {
+    if (buildLoopSource === source) {
+      buildLoopSource = null;
+      buildLoopGain = null;
+    }
+  };
+  buildLoopSource = source;
+  buildLoopGain = gain;
+}
+
+function stopBuildLoop() {
+  if (!buildLoopSource || !audioContext) return;
+  const source = buildLoopSource;
+  const gain = buildLoopGain;
+  const time = audioContext.currentTime;
+  buildLoopSource = null;
+  buildLoopGain = null;
+  gain.gain.cancelScheduledValues(time);
+  gain.gain.setValueAtTime(Math.max(gain.gain.value, 0.0001), time);
+  gain.gain.exponentialRampToValueAtTime(0.0001, time + 0.055);
+  source.stop(time + 0.065);
+}
+
+function playCompletionChime() {
+  if (!soundOn || !audioContext) return;
+  if (!completionBuffer) {
+    completionLoadPromise?.then(() => {
+      if (soundOn && completionBuffer) playCompletionChime();
+    });
+    return;
+  }
+  const source = audioContext.createBufferSource();
+  const gain = audioContext.createGain();
+  source.buffer = completionBuffer;
+  gain.gain.value = 0.82;
+  source.connect(gain).connect(masterGain);
+  source.start(audioContext.currentTime + 0.02);
+}
+
+function updateBuildAudio(_now, sequence, locked) {
+  if (sequence.assembly < 0.08) completionSoundPlayed = false;
+  const isFullyBuilt = totalParts > 0 && locked >= totalParts;
+
+  const isConstructing =
+    soundOn &&
+    !isPaused &&
+    !isFullyBuilt &&
+    sequence.assembly > 0.005 &&
+    sequence.assembly >= previousAssembly - 0.001;
+
+  if (isConstructing) startBuildLoop();
+  else stopBuildLoop();
+
+  if (isFullyBuilt && !completionSoundPlayed) {
+    stopBuildLoop();
+    playCompletionChime();
+    completionSoundPlayed = true;
+  }
+  previousAssembly = sequence.assembly;
 }
 
 function toggleSound() {
   setupAudio();
+  audioContext.resume();
   soundOn = !soundOn;
   masterGain.gain.cancelScheduledValues(audioContext.currentTime);
-  masterGain.gain.linearRampToValueAtTime(soundOn ? 1 : 0, audioContext.currentTime + 0.3);
+  masterGain.gain.linearRampToValueAtTime(soundOn ? 0.9 : 0, audioContext.currentTime + 0.08);
   ui.sound.setAttribute("aria-pressed", String(soundOn));
   ui.sound.querySelector(".sound-label").textContent = soundOn ? "Sound on" : "Sound off";
+  if (!soundOn) stopBuildLoop();
 }
 
 addEventListener("resize", () => {
@@ -544,14 +649,45 @@ addEventListener("resize", () => {
   camera.aspect = innerWidth / innerHeight;
   camera.updateProjectionMatrix();
 });
-addEventListener("pointermove", (event) => {
-  pointerX = event.clientX / innerWidth * 2 - 1;
-  pointerY = event.clientY / innerHeight * 2 - 1;
+
+canvas.addEventListener("pointerdown", (event) => {
+  if (event.button !== 0) return;
+  isOrbiting = true;
+  pointerStartX = event.clientX;
+  pointerStartY = event.clientY;
+  canvas.classList.add("is-dragging");
+  canvas.setPointerCapture(event.pointerId);
 });
-addEventListener("blur", () => {
-  pointerX = 0;
-  pointerY = 0;
+
+canvas.addEventListener("pointermove", (event) => {
+  if (!isOrbiting) return;
+  const deltaX = event.clientX - pointerStartX;
+  const deltaY = event.clientY - pointerStartY;
+  targetOrbitYaw -= deltaX * 0.006;
+  targetOrbitPitch = clamp(targetOrbitPitch + deltaY * 0.0045, 0.16, 1.34);
+  pointerStartX = event.clientX;
+  pointerStartY = event.clientY;
 });
+
+function stopOrbit(event) {
+  isOrbiting = false;
+  canvas.classList.remove("is-dragging");
+  if (event?.pointerId !== undefined && canvas.hasPointerCapture(event.pointerId)) {
+    canvas.releasePointerCapture(event.pointerId);
+  }
+}
+
+canvas.addEventListener("pointerup", stopOrbit);
+canvas.addEventListener("pointercancel", stopOrbit);
+addEventListener("blur", stopOrbit);
+canvas.addEventListener(
+  "wheel",
+  (event) => {
+    event.preventDefault();
+    targetOrbitZoom = clamp(targetOrbitZoom + event.deltaY * 0.00075, 0.68, 1.55);
+  },
+  { passive: false },
+);
 
 ui.rebuild.addEventListener("click", rebuild);
 ui.pause.addEventListener("click", togglePause);
