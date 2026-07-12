@@ -1,15 +1,17 @@
 import * as THREE from "../../assets/vendor/three.module.js";
+import { isMobileViewport, mobilePixelRatioCap } from "../device.js";
 import { hash, TAU } from "../math.js";
 
 export function createStage(canvas, initialSet) {
   let set = initialSet;
+  const mobile = isMobileViewport();
   const renderer = new THREE.WebGLRenderer({
     canvas,
-    antialias: true,
+    antialias: !mobile,
     alpha: false,
     powerPreference: "high-performance",
   });
-  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.65));
+  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, mobilePixelRatioCap()));
   renderer.setSize(innerWidth, innerHeight);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -53,7 +55,8 @@ export function createStage(canvas, initialSet) {
 
   const starGeometry = new THREE.BufferGeometry();
   const starPositions = [];
-  for (let index = 0; index < 1100; index += 1) {
+  const starCount = mobile ? (set.id === "millennium-falcon" ? 0 : 180) : 1100;
+  for (let index = 0; index < starCount; index += 1) {
     const radius = 2100 + hash(index, 1) * 2300;
     const theta = hash(index, 2) * TAU;
     const y = (hash(index, 3) - 0.5) * 3000;
@@ -80,21 +83,26 @@ export function createStage(canvas, initialSet) {
   shipRoot.add(shipPivot);
   scene.add(shipRoot);
 
-  const halo = new THREE.Mesh(
-    new THREE.RingGeometry(330, 780, 96),
-    new THREE.MeshBasicMaterial({
-      color: 0x224858,
-      transparent: true,
-      opacity: 0.065,
-      side: THREE.DoubleSide,
-      depthWrite: false,
-    }),
-  );
-  halo.rotation.x = -Math.PI / 2;
-  halo.position.y = -120;
-  scene.add(halo);
+  const halo = mobile
+    ? null
+    : new THREE.Mesh(
+        new THREE.RingGeometry(330, 780, 96),
+        new THREE.MeshBasicMaterial({
+          color: 0x224858,
+          transparent: true,
+          opacity: 0.065,
+          side: THREE.DoubleSide,
+          depthWrite: false,
+        }),
+      );
+  if (halo) {
+    halo.rotation.x = -Math.PI / 2;
+    halo.position.y = -120;
+    scene.add(halo);
+  }
 
   const onResize = () => {
+    renderer.setPixelRatio(Math.min(devicePixelRatio || 1, mobilePixelRatioCap()));
     renderer.setSize(innerWidth, innerHeight);
     camera.aspect = innerWidth / innerHeight;
     camera.updateProjectionMatrix();
@@ -126,7 +134,7 @@ export function createStage(canvas, initialSet) {
         ? set.camera.mobileModelRotation
         : set.camera.desktopModelRotation;
       stars.rotation.y = time * 0.000006;
-      halo.rotation.z = -time * 0.00004;
+      if (halo) halo.rotation.z = -time * 0.00004;
       renderer.render(scene, camera);
     },
 

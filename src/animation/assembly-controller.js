@@ -1,4 +1,5 @@
 import * as THREE from "../../assets/vendor/three.module.js";
+import { isHeavyModel, isMobileViewport, prefersReducedMotion } from "../device.js";
 import { clamp, hash, smoothstep } from "../math.js";
 
 export function createAssemblyController({
@@ -6,7 +7,7 @@ export function createAssemblyController({
   model,
   ui,
   sound,
-  reduceMotion,
+  reduceMotion = prefersReducedMotion(),
   search = location.search,
 }) {
   const { animation } = set;
@@ -15,9 +16,13 @@ export function createAssemblyController({
   const temporaryPosition = new THREE.Vector3();
   const temporaryQuaternion = new THREE.Quaternion();
   const temporaryScale = new THREE.Vector3();
+  const mobileHeavy = isMobileViewport() && isHeavyModel(totalParts);
+  const updateStride = mobileHeavy ? 3 : 1;
   let startTime = performance.now();
   let pausedAt = 0;
   let paused = false;
+  let frameTick = 0;
+  let lastLocked = 0;
 
   const query = new URLSearchParams(search);
   if (reduceMotion || query.has("complete") || query.has("vortex")) {
@@ -55,6 +60,11 @@ export function createAssemblyController({
     for (const batch of batches) {
       let dirty = false;
       batch.records.forEach((record, instanceIndex) => {
+        if (record.lastLock >= 0.995) {
+          locked += 1;
+          return;
+        }
+
         const lock = smoothstep(
           (assembly - record.delay) / animation.lockDuration,
         );
@@ -103,7 +113,12 @@ export function createAssemblyController({
     update(now) {
       const time = paused ? pausedAt : now;
       const sequence = sequenceAt(time);
-      const locked = updateInstances(time, sequence.assembly);
+      frameTick += 1;
+      const locked =
+        paused || frameTick % updateStride === 0
+          ? updateInstances(time, sequence.assembly)
+          : lastLocked;
+      lastLocked = locked;
       ui.updateAssembly({
         sequence,
         locked,

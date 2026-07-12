@@ -11,6 +11,7 @@ import {
   resolveLegoSet,
   resolveSetFromHref,
 } from "../src/sets/index.js";
+import { prefersReducedMotion } from "../src/device.js";
 import { createInterface } from "../src/ui/interface.js";
 
 const canvas = document.querySelector("#scene");
@@ -26,7 +27,7 @@ let model;
 let assembly;
 let switching = false;
 const modelFade = createModelFade({
-  reduceMotion: matchMedia("(prefers-reduced-motion: reduce)").matches,
+  reduceMotion: prefersReducedMotion(),
 });
 
 function revealModel(nextModel) {
@@ -48,7 +49,7 @@ function createAssemblyForSet(set, loadedModel) {
     model: loadedModel,
     ui,
     sound,
-    reduceMotion: matchMedia("(prefers-reduced-motion: reduce)").matches,
+    reduceMotion: prefersReducedMotion(),
   });
   controller.warmUp?.(performance.now());
   return controller;
