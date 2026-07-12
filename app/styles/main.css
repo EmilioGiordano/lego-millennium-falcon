@@ -186,6 +186,37 @@ main {
   pointer-events: auto;
 }
 
+.playback-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  pointer-events: auto;
+}
+
+.playback-controls button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  pointer-events: auto;
+}
+
+#rebuildButton {
+  padding: 8px 10px;
+  background: transparent;
+  color: #a6acab;
+  text-transform: uppercase;
+  transition: color 180ms;
+}
+
+#rebuildButton:hover {
+  color: var(--amber);
+}
+
+#rebuildButton i {
+  font-size: 14px;
+  font-style: normal;
+}
+
 .hero {
   position: absolute;
   top: clamp(60px, 10vh, 122px);
@@ -388,6 +419,7 @@ footer {
   font-weight: 500;
   letter-spacing: 0.1em;
   text-shadow: 0 1px 8px rgba(3, 6, 11, 0.95);
+  pointer-events: auto;
 }
 
 footer > span:last-child {
@@ -432,6 +464,16 @@ a:focus-visible {
 }
 
 @media (max-width: 760px) {
+  .grain {
+    display: none;
+  }
+
+  .topbar,
+  footer {
+    backdrop-filter: none;
+    background: rgba(3, 6, 11, 0.97);
+  }
+
   .frame {
     inset: 0 10px 10px;
   }
@@ -465,27 +507,60 @@ a:focus-visible {
 
   .telemetry {
     right: 25px;
-    bottom: 66px;
+    bottom: calc(88px + env(safe-area-inset-bottom, 0px));
     width: calc(100% - 50px);
   }
 
   .instructions {
-    bottom: 15px;
-  }
-
-  .instructions > span {
     display: none;
   }
 
   footer {
-    height: 50px;
-    padding: 0 24px;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 6;
+    height: auto;
+    min-height: 64px;
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
     display: flex;
     justify-content: center;
+    align-items: center;
+    background: rgba(3, 6, 11, 0.94);
+    backdrop-filter: blur(16px);
+    border-top: 1px solid var(--line);
+    pointer-events: auto;
   }
 
   footer > span {
     display: none;
+  }
+
+  .playback-controls {
+    width: min(100%, 360px);
+    gap: 10px;
+  }
+
+  #pauseButton,
+  #rebuildButton {
+    flex: 1;
+    justify-content: center;
+    min-height: 44px;
+    padding: 10px 14px;
+    border: 1px solid rgba(219, 231, 229, 0.28);
+    border-radius: 999px;
+    background: rgba(10, 16, 24, 0.92);
+    color: var(--ink);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-shadow: none;
+  }
+
+  #pauseButton:hover,
+  #rebuildButton:hover {
+    color: var(--amber);
+    border-color: rgba(246, 184, 63, 0.45);
   }
 }
 
