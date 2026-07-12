@@ -85,20 +85,36 @@ async function ensureModel(set) {
     root.visible = false;
     stage.shipPivot.add(root);
 
-    const loaded = await loadLegoSet({
-      set,
-      modelRoot: root,
-      ui,
-      showProgress: false,
-      silent: true,
-    });
-    modelCache.set(set.id, loaded);
-    loadingModels.delete(set.id);
-    return loaded;
+    try {
+      const loaded = await loadLegoSet({
+        set,
+        modelRoot: root,
+        ui,
+        showProgress: false,
+        silent: true,
+      });
+      modelCache.set(set.id, loaded);
+      return loaded;
+    } catch (error) {
+      stage.shipPivot.remove(root);
+      throw error;
+    } finally {
+      loadingModels.delete(set.id);
+    }
   })();
 
   loadingModels.set(set.id, loadPromise);
   return loadPromise;
+}
+
+function rollbackSet(previousSet) {
+  try {
+    applyActiveSet(previousSet);
+  } catch (error) {
+    console.error(error);
+    ui.applySet(previousSet);
+    ui.setNavigation(navigationItems(previousSet));
+  }
 }
 
 async function activateSet(nextSet, href, { replace = false } = {}) {
@@ -107,8 +123,7 @@ async function activateSet(nextSet, href, { replace = false } = {}) {
   ui.setControlsDisabled(true);
 
   const previousSet = activeSet;
-  if (replace) history.replaceState({ set: nextSet.id }, "", href);
-  else history.pushState({ set: nextSet.id }, "", href);
+  const previousHref = getSetHref(previousSet);
 
   try {
     const nextModel = await ensureModel(nextSet);
@@ -117,10 +132,12 @@ async function activateSet(nextSet, href, { replace = false } = {}) {
     ui.setTotalParts(nextModel.totalParts);
     ui.setReady();
     assembly = createAssemblyForSet(nextSet, nextModel);
+    if (replace) history.replaceState({ set: nextSet.id }, "", href);
+    else history.pushState({ set: nextSet.id }, "", href);
   } catch (error) {
     console.error(error);
-    applyActiveSet(previousSet);
-    history.replaceState({ set: previousSet.id }, "", getSetHref(previousSet));
+    rollbackSet(previousSet);
+    history.replaceState({ set: previousSet.id }, "", previousHref);
     if (modelCache.has(previousSet.id)) {
       revealModel(modelCache.get(previousSet.id));
       assembly = createAssemblyForSet(previousSet, model);
@@ -128,6 +145,7 @@ async function activateSet(nextSet, href, { replace = false } = {}) {
     ui.setError();
   } finally {
     switching = false;
+    ui.setControlsDisabled(false);
   }
 }
 

@@ -90,6 +90,7 @@ export function createInterface(root = document) {
     setError(message = "Model load failed") {
       elements.phase.textContent = message;
       elements.progress.style.width = "0%";
+      this.setControlsDisabled(false);
     },
 
     updateAssembly({
