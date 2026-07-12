@@ -1,7 +1,7 @@
 export function createInterface(root = document) {
   const elements = {
     canvas: root.querySelector("#scene"),
-    systemStatus: root.querySelector(".system-status span:last-child"),
+    navigation: root.querySelector(".set-navigation"),
     eyebrow: root.querySelector(".eyebrow"),
     headingLead: root.querySelector("h1 span"),
     headingMain: root.querySelector("h1 strong"),
@@ -29,10 +29,20 @@ export function createInterface(root = document) {
   };
 
   return {
+    setNavigation(items) {
+      const links = items.map(({ label, href, current }) => {
+        const item = root.createElement(current ? "span" : "a");
+        item.textContent = label;
+        if (current) item.setAttribute("aria-current", "page");
+        else item.href = href;
+        return item;
+      });
+      elements.navigation.replaceChildren(...links);
+    },
+
     applySet(set) {
       root.title = set.ui.documentTitle;
       elements.canvas.setAttribute("aria-label", set.ui.canvasLabel);
-      elements.systemStatus.textContent = set.ui.systemStatus;
       elements.eyebrow.textContent = set.ui.eyebrow;
       elements.headingLead.textContent = set.ui.headingLead;
       replaceLines(elements.headingMain, set.ui.headingLines);

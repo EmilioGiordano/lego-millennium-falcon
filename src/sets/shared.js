@@ -1,0 +1,25 @@
+export const sharedAnimation = Object.freeze({
+  duration: 22000,
+  timeline: {
+    formationEnd: 0.12,
+    assemblyEnd: 0.72,
+    presentationEnd: 0.95,
+  },
+  freezeAt: {
+    complete: 0.76,
+    vortex: 0.06,
+  },
+  rebuildOffset: 0.03,
+  startRadius: [620, 1540],
+  verticalSpread: 1050,
+  bagDivisor: 16,
+  bagDelay: 0.49,
+  pieceDelay: 0.13,
+  lockDuration: 0.25,
+  orbitSpeed: [0.72, 1.2],
+  collapse: 0.8,
+  verticalOrbit: 95,
+  assemblingScale: 0.5,
+  initialScale: 0.01,
+  maxVelocity: 18.4,
+});

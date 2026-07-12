@@ -48,7 +48,7 @@ Repeated bricks share geometry. The converter groups parts by geometry and mater
 - Its construction bag number
 - The material references required by that geometry
 
-The result is `assets/falcon/scene.json`, which describes the scene, and `assets/falcon/geometries.zip`, which contains only the geometry files the final ship actually uses. Deflate compression is applied at its highest standard level.
+The result is `assets/sets/millennium-falcon/scene.json`, which describes the scene, and `assets/sets/millennium-falcon/geometries.zip`, which contains only the geometry files the final ship actually uses. Deflate compression is applied at its highest standard level.
 
 ## Runtime reconstruction
 
@@ -118,38 +118,40 @@ The runtime expects `assets/audio/lego-build-process.mp3` and `assets/audio/lego
 .
 ├── app/
 │   ├── styles/main.css        Responsive presentation and instrumentation
-│   ├── index.html             Semantic interface structure
 │   └── main.js                Small application composition root
 ├── assets/
 │   ├── audio/                 Optional runtime sound files (not included)
-│   ├── falcon/
-│   │   ├── scene.json         Compact scene and instance manifest
-│   │   └── geometries.zip     Deduplicated geometry archive
+│   ├── sets/
+│   │   └── millennium-falcon/
+│   │       ├── scene.json     Compact scene and instance manifest
+│   │       └── geometries.zip Deduplicated geometry archive
 │   └── vendor/                Browser-ready Three.js and JSZip modules
 ├── docs/screenshots/          Project imagery used in this document
 ├── src/
 │   ├── animation/             Assembly timeline and per-piece motion
 │   ├── audio/                 Optional Web Audio synchronization
-│   ├── config/sets.js         Per-set assets, camera, and animation settings
 │   ├── controls/              Reusable orbit and zoom input
 │   ├── model/                 Geometry parsing and instanced-model loading
 │   ├── rendering/             Three.js stage, lighting, and environment
+│   ├── sets/                  Set registry and individual definitions
 │   └── ui/                    DOM state and telemetry updates
-└── tools/prepare-model.py     Mecabricks-to-runtime conversion pipeline
+├── tools/prepare-model.py     Mecabricks-to-runtime conversion pipeline
+└── index.html                 Public application entry point
 ```
 
 ## Adding another LEGO set
 
-The runtime is model-agnostic. A set definition in `src/config/sets.js` selects its manifest and geometry archive, camera framing, material effects, audio, labels, and assembly parameters. Loading, legacy geometry conversion, instancing, controls, sound, telemetry, and the render loop are shared.
+The runtime is model-agnostic. Each module in `src/sets/` selects a manifest and geometry archive, camera framing, material effects, audio, labels, and assembly parameters. `src/sets/index.js` is the central route and navigation registry. Loading, legacy geometry conversion, instancing, controls, sound, telemetry, and the render loop are shared.
 
 To introduce another set:
 
 1. Process its Mecabricks export into a scene manifest and geometry archive.
-2. Place those runtime assets under a new `assets/<set-id>/` directory.
-3. Add a definition to `legoSets` in `src/config/sets.js`.
-4. Open the experience with `/app/?set=<set-id>`.
+2. Place those runtime assets under `assets/sets/<set-id>/`.
+3. Add a definition module under `src/sets/`.
+4. Register it in `src/sets/index.js`.
+5. Open the experience with `/?set=<set-id>`, or expose `/<set-id>/` through the hosting provider's rewrite rules.
 
-Set-specific tuning remains data rather than branching application logic. A differently sized model can define its own camera distances and rotation; a different build can adjust bag timing, vortex radius, assembly duration, completion label, and emissive materials without changing the shared modules.
+The navbar is generated from the same registry and appears automatically when more than one set is available. Set-specific tuning remains data rather than branching application logic. A differently sized model can define its own camera distances and rotation; a different build can adjust bag timing, vortex radius, assembly duration, completion label, and emissive materials without changing the shared modules.
 
 ## Running locally
 
@@ -159,7 +161,7 @@ ES modules, `fetch`, and the ZIP archive require the project to be served over H
 python -m http.server 4173
 ```
 
-Then open `http://localhost:4173/app/`.
+Then open `http://localhost:4173/`.
 
 A current WebGL-capable browser is recommended. There is no dependency installation or build step.
 

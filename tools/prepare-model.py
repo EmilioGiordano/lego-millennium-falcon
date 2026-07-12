@@ -13,7 +13,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "assets" / "falcon-mecabricks"
 SOURCE_ZIP = ROOT / "assets" / "falcon-mecabricks.zip"
-OUTPUT = ROOT / "assets" / "falcon"
+OUTPUT = ROOT / "assets" / "sets" / "millennium-falcon"
 OUTPUT_SCENE = OUTPUT / "scene.json"
 OUTPUT_GEOMETRIES = OUTPUT / "geometries.zip"
 

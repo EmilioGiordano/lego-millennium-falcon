@@ -1,9 +1,13 @@
 import { createAssemblyController } from "../src/animation/assembly-controller.js";
 import { createSoundController } from "../src/audio/sound-controller.js";
-import { resolveLegoSet } from "../src/config/sets.js";
 import { createOrbitController } from "../src/controls/orbit-controller.js";
 import { loadLegoSet } from "../src/model/load-lego-set.js";
 import { createStage } from "../src/rendering/stage.js";
+import {
+  getSetHref,
+  legoSets,
+  resolveLegoSet,
+} from "../src/sets/index.js";
 import { createInterface } from "../src/ui/interface.js";
 
 const canvas = document.querySelector("#scene");
@@ -15,6 +19,13 @@ const sound = createSoundController({ assets: set.audio, ui });
 let assembly;
 
 ui.applySet(set);
+ui.setNavigation(
+  legoSets.map((candidate) => ({
+    label: candidate.navigationLabel,
+    href: getSetHref(candidate),
+    current: candidate.id === set.id,
+  })),
+);
 ui.bind({
   onRebuild: () => assembly?.rebuild(),
   onPause: () => assembly?.togglePause(),

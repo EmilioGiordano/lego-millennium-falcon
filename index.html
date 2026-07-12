@@ -11,7 +11,7 @@
       href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=DM+Mono:wght@300;400;500&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles/main.css" />
+    <link rel="stylesheet" href="./app/styles/main.css" />
   </head>
   <body>
     <canvas id="scene" aria-label="LEGO bricks swirling into the Millennium Falcon"></canvas>
@@ -20,11 +20,7 @@
     <div class="frame" aria-hidden="true"></div>
 
     <header class="topbar">
-      <span aria-hidden="true"></span>
-      <div class="system-status">
-        <span class="status-light"></span>
-        <span>YT-1300 / ASSEMBLY BAY 07</span>
-      </div>
+      <nav class="set-navigation" aria-label="LEGO sets"></nav>
       <div class="topbar-actions">
         <a
           class="repository-link"
@@ -94,6 +90,6 @@
       <span>Unofficial fan experiment</span>
     </footer>
 
-    <script type="module" src="./main.js"></script>
+    <script type="module" src="./app/main.js"></script>
   </body>
 </html>
