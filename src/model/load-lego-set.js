@@ -94,9 +94,22 @@ function createAssemblyRecord(matrixArray, globalIndex, bag, modelCenter, animat
   };
 }
 
-export async function loadLegoSet({ set, shipPivot, ui }) {
-  ui.setLoading("Loading manifest", 3);
-  ui.setControlsDisabled(true);
+export async function loadLegoSet({
+  set,
+  modelRoot,
+  shipPivot,
+  ui,
+  showProgress = true,
+  silent = false,
+}) {
+  const root = modelRoot ?? shipPivot;
+  if (!root) {
+    throw new Error("loadLegoSet requires modelRoot.");
+  }
+  if (!silent) {
+    ui.setLoading("Loading manifest", 3);
+    ui.setControlsDisabled(true);
+  }
 
   const [manifestResponse, archiveResponse] = await Promise.all([
     fetch(set.assets.manifest),
@@ -110,10 +123,10 @@ export async function loadLegoSet({ set, shipPivot, ui }) {
   const archive = await JSZip.loadAsync(await archiveResponse.arrayBuffer());
   const totalParts = sceneData.metadata.parts;
   const modelCenter = new THREE.Vector3(...sceneData.bounds.center);
-  shipPivot.position.copy(modelCenter).multiplyScalar(-1);
-  ui.setTotalParts(totalParts);
+  root.position.copy(modelCenter).multiplyScalar(-1);
+  if (!silent) ui.setTotalParts(totalParts);
 
-  ui.setLoading("Decoding real bricks", 7);
+  if (!silent) ui.setLoading("Decoding real bricks", 7);
   const geometries = new Array(sceneData.geometries.length);
   for (let index = 0; index < sceneData.geometries.length; index += 1) {
     const descriptor = sceneData.geometries[index];
@@ -126,7 +139,7 @@ export async function loadLegoSet({ set, shipPivot, ui }) {
         JSON.parse(await file.async("string")),
       );
     }
-    if (index % 10 === 0) {
+    if (showProgress && index % 10 === 0) {
       ui.setLoading(
         "Decoding real bricks",
         7 + index / sceneData.geometries.length * 58,
@@ -172,15 +185,17 @@ export async function loadLegoSet({ set, shipPivot, ui }) {
     records.forEach((record, instanceIndex) => {
       temporary.position.copy(record.startPosition);
       temporary.quaternion.copy(record.startQuaternion);
-      temporary.scale.setScalar(set.animation.initialScale);
+      temporary.scale
+        .copy(record.targetScale)
+        .multiplyScalar(set.animation.assemblingScale);
       temporary.updateMatrix();
       mesh.setMatrixAt(instanceIndex, temporary.matrix);
     });
     mesh.instanceMatrix.needsUpdate = true;
-    shipPivot.add(mesh);
+    root.add(mesh);
     batches.push({ mesh, records });
 
-    if (groupIndex % 20 === 0) {
+    if (showProgress && groupIndex % 20 === 0) {
       ui.setLoading(
         `Placing ${totalParts.toLocaleString()} bricks`,
         66 + groupIndex / sceneData.groups.length * 31,
@@ -189,6 +204,6 @@ export async function loadLegoSet({ set, shipPivot, ui }) {
     }
   }
 
-  ui.setReady();
-  return { batches, modelCenter, totalParts };
+  if (!silent) ui.setReady();
+  return { batches, modelCenter, totalParts, root };
 }

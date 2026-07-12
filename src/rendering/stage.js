@@ -1,7 +1,8 @@
 import * as THREE from "../../assets/vendor/three.module.js";
 import { hash, TAU } from "../math.js";
 
-export function createStage(canvas, set) {
+export function createStage(canvas, initialSet) {
+  let set = initialSet;
   const renderer = new THREE.WebGLRenderer({
     canvas,
     antialias: true,
@@ -12,38 +13,43 @@ export function createStage(canvas, set) {
   renderer.setSize(innerWidth, innerHeight);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = set.rendering?.exposure ?? 1.55;
+  const hemisphereLight = new THREE.HemisphereLight(0xd8e6e9, 0x171c24, 4.2);
+  const keyLight = new THREE.DirectionalLight(0xffe7c3, 7.4);
+  keyLight.position.set(-500, 900, 450);
+  const undersideLight = new THREE.DirectionalLight(0x9fb9c5, 3.2);
+  undersideLight.position.set(0, -900, 260);
+  const rimLight = new THREE.PointLight(0x55b9dc, 420000, 2200);
+  rimLight.position.set(-700, 260, -620);
+  const warmLight = new THREE.PointLight(0xef4b2f, 190000, 1700);
+  warmLight.position.set(650, 380, 560);
+
   renderer.setClearColor(0x02050a, 1);
 
   const scene = new THREE.Scene();
   scene.fog = new THREE.FogExp2(0x02050a, 0.00052);
   const camera = new THREE.PerspectiveCamera(34, innerWidth / innerHeight, 1, 7000);
   camera.position.set(0, 1040, 1120);
-  const lightScale = set.rendering?.lightScale ?? 1;
-  const keyLightColor = set.rendering?.keyLightColor ?? 0xffe7c3;
-  const warmLightScale = set.rendering?.warmLightScale ?? 1;
 
-  scene.add(new THREE.HemisphereLight(0xd8e6e9, 0x171c24, 4.2 * lightScale));
-
-  const keyLight = new THREE.DirectionalLight(keyLightColor, 7.4 * lightScale);
-  keyLight.position.set(-500, 900, 450);
+  scene.add(hemisphereLight);
   scene.add(keyLight);
-
-  const undersideLight = new THREE.DirectionalLight(0x9fb9c5, 3.2 * lightScale);
-  undersideLight.position.set(0, -900, 260);
   scene.add(undersideLight);
-
-  const rimLight = new THREE.PointLight(0x55b9dc, 420000 * lightScale, 2200);
-  rimLight.position.set(-700, 260, -620);
   scene.add(rimLight);
-
-  const warmLight = new THREE.PointLight(
-    0xef4b2f,
-    190000 * lightScale * warmLightScale,
-    1700,
-  );
-  warmLight.position.set(650, 380, 560);
   scene.add(warmLight);
+
+  function applyLighting(nextSet) {
+    const lightScale = nextSet.rendering?.lightScale ?? 1;
+    const keyLightColor = nextSet.rendering?.keyLightColor ?? 0xffe7c3;
+    const warmLightScale = nextSet.rendering?.warmLightScale ?? 1;
+    renderer.toneMappingExposure = nextSet.rendering?.exposure ?? 1.55;
+    hemisphereLight.intensity = 4.2 * lightScale;
+    keyLight.color.setHex(keyLightColor);
+    keyLight.intensity = 7.4 * lightScale;
+    undersideLight.intensity = 3.2 * lightScale;
+    rimLight.intensity = 420000 * lightScale;
+    warmLight.intensity = 190000 * lightScale * warmLightScale;
+  }
+
+  applyLighting(set);
 
   const starGeometry = new THREE.BufferGeometry();
   const starPositions = [];
@@ -97,6 +103,11 @@ export function createStage(canvas, set) {
 
   return {
     shipPivot,
+
+    applySet(nextSet) {
+      set = nextSet;
+      applyLighting(nextSet);
+    },
 
     render(time, orbit) {
       const mobile = innerWidth < set.camera.mobileBreakpoint;

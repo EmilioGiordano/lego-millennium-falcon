@@ -51,10 +51,18 @@ export function createInterface(root = document) {
       elements.footerRight.textContent = set.ui.footerRight;
     },
 
-    bind({ onRebuild, onPause, onSound }) {
+    bind({ onRebuild, onPause, onSound, onNavigate }) {
       elements.rebuild.addEventListener("click", onRebuild);
       elements.pause.addEventListener("click", onPause);
       elements.sound.addEventListener("click", onSound);
+      if (onNavigate) {
+        elements.navigation.addEventListener("click", (event) => {
+          const link = event.target.closest("a");
+          if (!link) return;
+          event.preventDefault();
+          onNavigate(link.getAttribute("href"));
+        });
+      }
     },
 
     setLoading(phase, progress) {

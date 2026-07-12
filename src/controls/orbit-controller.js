@@ -1,6 +1,7 @@
 import { clamp } from "../math.js";
 
-export function createOrbitController(canvas, cameraConfig) {
+export function createOrbitController(canvas, initialCameraConfig) {
+  let cameraConfig = initialCameraConfig;
   let yaw = 0;
   let pitch = cameraConfig.initialPitch;
   let zoom = 1;
@@ -59,6 +60,14 @@ export function createOrbitController(canvas, cameraConfig) {
   addEventListener("blur", stopOrbit);
 
   return {
+    applyConfig(nextCameraConfig) {
+      cameraConfig = nextCameraConfig;
+      pitch = nextCameraConfig.initialPitch;
+      targetPitch = nextCameraConfig.initialPitch;
+      zoom = 1;
+      targetZoom = 1;
+    },
+
     update() {
       yaw += (targetYaw - yaw) * 0.09;
       pitch += (targetPitch - pitch) * 0.09;

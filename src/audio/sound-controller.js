@@ -7,7 +7,7 @@ export function createSoundController({ assets, ui }) {
   let buildGain;
   let completionBuffer;
   let completionLoadPromise;
-  let enabled = false;
+  let enabled = true;
   let completionPlayed = false;
   let previousAssembly = 0;
 
@@ -85,16 +85,32 @@ export function createSoundController({ assets, ui }) {
     source.start(context.currentTime + 0.02);
   }
 
+  function applyEnabledState() {
+    if (!context) return;
+    masterGain.gain.cancelScheduledValues(context.currentTime);
+    masterGain.gain.linearRampToValueAtTime(
+      enabled ? 0.9 : 0,
+      context.currentTime + 0.08,
+    );
+  }
+
+  ui.setSoundEnabled(enabled);
+
+  const unlock = () => {
+    setup();
+    context.resume().then(() => {
+      if (enabled) applyEnabledState();
+    });
+  };
+  addEventListener("pointerdown", unlock, { once: true });
+  addEventListener("keydown", unlock, { once: true });
+
   return {
     toggle() {
       setup();
       context.resume();
       enabled = !enabled;
-      masterGain.gain.cancelScheduledValues(context.currentTime);
-      masterGain.gain.linearRampToValueAtTime(
-        enabled ? 0.9 : 0,
-        context.currentTime + 0.08,
-      );
+      applyEnabledState();
       ui.setSoundEnabled(enabled);
       if (!enabled) stopBuild();
     },

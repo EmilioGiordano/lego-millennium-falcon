@@ -28,6 +28,13 @@ export function resolveLegoSet({
   return setsByRoute.get(pathSet) || defaultLegoSet;
 }
 
+export function resolveSetFromHref(href, base = location.href) {
+  const url = new URL(href, base);
+  const querySet = url.searchParams.get("set");
+  if (querySet && setsByRoute.has(querySet)) return setsByRoute.get(querySet);
+  return defaultLegoSet;
+}
+
 export function getSetHref(set, pathname = location.pathname) {
   const segments = pathname.split("/").filter(Boolean);
   const activeRouteIndex = segments.findIndex((segment) =>
@@ -38,5 +45,6 @@ export function getSetHref(set, pathname = location.pathname) {
   else if (segments.at(-1)?.includes(".")) segments.pop();
 
   const base = segments.length ? `/${segments.join("/")}/` : "/";
-  return `${base}${set.route}/`;
+  if (set.id === defaultLegoSet.id) return base;
+  return `${base}?set=${encodeURIComponent(set.route)}`;
 }

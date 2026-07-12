@@ -96,6 +96,10 @@ export function createAssemblyController({
   }
 
   return {
+    warmUp(now) {
+      updateInstances(now, sequenceAt(now).assembly);
+    },
+
     update(now) {
       const time = paused ? pausedAt : now;
       const sequence = sequenceAt(time);
