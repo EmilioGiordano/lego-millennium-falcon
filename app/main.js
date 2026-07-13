@@ -6,6 +6,7 @@ import { loadLegoSet } from "../src/model/load-lego-set.js";
 import { createStage } from "../src/rendering/stage.js";
 import { createModelFade } from "../src/rendering/model-fade.js";
 import {
+  defaultLegoSet,
   getSetHref,
   legoSets,
   resolveLegoSet,
@@ -158,6 +159,7 @@ ui.bind({
   onPause: () => assembly?.togglePause(),
   onSound: () => sound.toggle(),
   onNavigate: (href) => activateSet(resolveSetFromHref(href), href),
+  onHome: () => activateSet(defaultLegoSet, getSetHref(defaultLegoSet)),
 });
 
 addEventListener("popstate", () => {
