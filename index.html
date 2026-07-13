@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#03060b" />
     <title>Millennium Falcon Assembly</title>
+    <link rel="icon" href="./assets/icons/uzumaki_lego.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="./assets/icons/uzumaki_lego.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -21,6 +23,9 @@
 
     <header class="topbar">
       <nav class="set-navigation" aria-label="LEGO sets"></nav>
+      <a class="topbar-brand" href="./" aria-label="Lego Gallery home">
+        <img src="./assets/icons/uzumaki_lego.svg" alt="" width="40" height="40" decoding="async" />
+      </a>
       <div class="topbar-actions">
         <a
           class="repository-link"
@@ -93,7 +98,7 @@
     </footer>
 
     <script type="module">
-      const APP_VERSION = "7";
+      const APP_VERSION = "11";
       await import(`./app/main.js?v=${APP_VERSION}`);
     </script>
   </body>

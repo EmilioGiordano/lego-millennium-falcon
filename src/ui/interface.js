@@ -51,10 +51,17 @@ export function createInterface(root = document) {
       elements.footerRight.textContent = set.ui.footerRight;
     },
 
-    bind({ onRebuild, onPause, onSound, onNavigate }) {
+    bind({ onRebuild, onPause, onSound, onNavigate, onHome }) {
       elements.rebuild.addEventListener("click", onRebuild);
       elements.pause.addEventListener("click", onPause);
       elements.sound.addEventListener("click", onSound);
+      if (onHome) {
+        const brand = root.querySelector(".topbar-brand");
+        brand?.addEventListener("click", (event) => {
+          event.preventDefault();
+          onHome();
+        });
+      }
       if (onNavigate) {
         elements.navigation.addEventListener("click", (event) => {
           const link = event.target.closest("a");
